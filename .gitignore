@@ -37,19 +37,19 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Project-specific redundant files/folders
-mnt/
-fix_data.py
-replace_ig.py
-replace_viewer.py
-about.py
-contact.py
-counters.py
-hero.py
-instagram.py
-navbar.py
-product_detail.py
-products.py
-styles.py
-testimonials.py
-videos.py
+# Project-specific redundant files/folders (ONLY targeting root)
+/mnt/
+/fix_data.py
+/replace_ig.py
+/replace_viewer.py
+/about.py
+/contact.py
+/counters.py
+/hero.py
+/instagram.py
+/navbar.py
+/product_detail.py
+/products.py
+/styles.py
+/testimonials.py
+/videos.py
