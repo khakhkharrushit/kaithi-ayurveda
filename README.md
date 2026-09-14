@@ -1,161 +1,142 @@
-# 🌿 Kaithi Ayurveda — Premium Streamlit Web App
+# 🌿 Kaithi Ayurveda — Full-Stack D2C E-Commerce Platform
 
-A luxury Ayurvedic brand experience built with Streamlit + embedded Three.js 3D.
+> **Live Production Store:** [https://kaithi-ayurveda.onrender.com/](https://kaithi-ayurveda.onrender.com/)  
+> **Author:** **Rushit Khakhkhar** (Final Year B.Tech Information Technology)  
+> **Client / Practitioner:** Dr. Nidhi Khakhkhar (BAMS), Kaithi Ayurveda, Kodinar, Gujarat
 
 ---
 
-## 🚀 Quick Start
+## 📌 Executive Summary
+
+**Kaithi Ayurveda** is a production-grade, full-stack Direct-to-Consumer (D2C) e-commerce platform engineered from scratch for an authentic Ayurvedic cosmetics brand. 
+
+Designed and architected as a capstone-level production system, it combines a luxury responsive frontend with an enterprise-ready backend featuring **Google Identity authentication**, **real-time Email OTP verification via SMTP**, **cross-session persistent cart sync**, **0% commission direct UPI payments**, and a **dedicated role-based Admin Command Center**.
+
+---
+
+## 🌟 Key Engineering & Architectural Highlights
+
+```mermaid
+graph TD
+    Client[React 19 + Vite SPA] <-->|REST API + JWT Auth| Server[Node.js + Express Backend]
+    Server <-->|WAL Mode / ACID Transactions| DB[(SQLite Database)]
+    Server <-->|OAuth2 Token Verification| Google[Google Identity Services]
+    Server <-->|SMTP Transport| Gmail[Gmail Mailer Engine]
+    Server <-->|Static Delivery| CDN[Brand Assets /assets]
+```
+
+### 1. 🔐 Multi-Modal Authentication & Security Architecture
+- **Official Google Sign-In (GSI)**: Integrated Google Identity Services with server-side JWT verification using `google-auth-library` (`verifyIdToken`).
+- **Passwordless Email OTP Verification**: Integrated `nodemailer` with Gmail SMTP for real-time delivery of 6-digit branded verification codes with 10-minute expiry and 60-second client resend cooldowns.
+- **Role-Based Access Control (RBAC)**: JWT-based claims (`customer` vs `admin`) with middleware protection (`authenticateToken`, `requireAdmin`).
+- **Compliance & Consent**: Mandatory Terms of Service & Privacy Policy agreement required before authentication.
+
+### 2. 🛒 Persistent Cross-Device Cart & State Engine
+- **Database-Backed Cart Sync (`user_cart_items`)**: Cart state is persisted to SQLite, allowing customers to add items on one device and seamlessly access them on another upon logging in.
+- **Smart Session Transition**: Automatically merges guest carts into user accounts upon authentication, while wiping client storage on sign-out for privacy without losing database records.
+- **Dynamic Coupon Engine**: Real-time server-validated discount calculation supporting both flat and percentage-based promo codes (`FIRST10`, `AYURVEDA20`).
+
+### 3. 💳 Flexible Omnichannel Payment Pipeline
+- **Zero-Fee Direct UPI QR Engine**: Generates dynamic UPI deep-links and QR codes mapped directly to merchant VPA with instant one-click copy and 12-digit UTR reference tracking.
+- **Doorstep Cash on Delivery (COD)**: Supports traditional e-commerce fulfillment with pending payment settlement.
+- **Payment Gateway Ready**: Integrated with Razorpay SDK for standard credit/debit card and NetBanking transactions.
+
+### 4. 🛡️ Role-Isolated Admin Command Center
+- **Dedicated Management Portal (`/admin`)**: Fully hidden and isolated from standard customer sessions.
+- **Live Order Pipeline**: Real-time tracking and status dispatching (`Placed` ➔ `Processing` ➔ `Shipped` ➔ `Delivered` ➔ `Cancelled`).
+- **Courier Logistics Dispatcher**: Attach tracking codes (Delhivery, BlueDart, India Post) that update in real-time on the customer's portal.
+- **Printable Tax Invoices**: Automatically generates GST-compliant printable invoices with customer address, itemization, and clinic branding.
+- **Revenue Analytics**: Real-time tracking of gross sales, active formulations, and pending shipments.
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend Framework** | **React 19**, Vite, Vanilla CSS Design System |
+| **Icons & UI** | Lucide React, Canvas Confetti |
+| **Backend Runtime** | **Node.js**, **Express.js** (REST API) |
+| **Database** | **SQLite** (`better-sqlite3`) with WAL journal mode |
+| **Authentication** | Google Identity Services (GSI), JWT, BcryptJS |
+| **Email Engine** | Nodemailer (Gmail SMTP Transport) |
+| **Payments** | Direct UPI QR, Razorpay SDK, COD |
+| **Hosting & Cloud** | **Render.com** (Continuous Deployment via GitHub, HTTPS SSL) |
+
+---
+
+## 📂 Project Architecture
+
+```
+kaithi-ayurveda/
+├── client/                     # React 19 Frontend SPA
+│   ├── src/
+│   │   ├── components/         # Modular UI (Navbar, AuthModal, CartDrawer, HeroBanner, Footer)
+│   │   ├── context/            # Global State (AuthContext, CartContext, ThemeContext)
+│   │   ├── pages/              # Views (HomePage, ProductDetail, Checkout, Profile, Admin)
+│   │   ├── index.css           # Luxury Ayurvedic Design Tokens & Glassmorphism
+│   │   └── main.jsx            # React Root
+│   ├── index.html              # HTML5 Shell with Google Fonts & GSI Script
+│   └── vite.config.js          # Vite Build Config
+├── server/                     # Node.js / Express Backend
+│   ├── middleware/             # JWT & RBAC Auth Middleware
+│   ├── routes/                 # Modular REST API Routes
+│   │   ├── auth.js             # Google Auth, Email OTP, Profile
+│   │   ├── products.js         # Product Catalog & Search
+│   │   ├── orders.js           # Order Creation, Lifecycle & Invoicing
+│   │   ├── cart.js             # Database Cart Persistence & Sync
+│   │   ├── coupons.js          # Coupon Validation
+│   │   └── payment.js          # Gateway Integration
+│   ├── db.js                   # SQLite Schema & Seeding Engine
+│   └── index.js                # Express Server Entry Point
+├── assets/                     # Authentic High-Resolution Product & Botanical Imagery
+├── package.json                # Root Build & Startup Scripts
+└── README.md                   # Engineering Documentation
+```
+
+---
+
+## 📡 REST API Specifications
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/google` | Public | Verify Google ID token and sign in / register |
+| `POST` | `/api/auth/send-otp` | Public | Dispatch 6-digit verification code to email |
+| `POST` | `/api/auth/verify-otp` | Public | Verify OTP code and issue JWT session token |
+| `GET` | `/api/cart` | Authenticated | Retrieve persistent database cart for user |
+| `POST` | `/api/cart/sync` | Authenticated | Merge and synchronize cart items |
+| `POST` | `/api/orders` | Authenticated | Place new order with shipping details & items |
+| `GET` | `/api/orders/my-orders` | Authenticated | Fetch customer order history & tracking |
+| `GET` | `/api/orders/admin/stats` | Admin | Aggregate revenue, orders, and fulfillment stats |
+| `PATCH`| `/api/orders/:id/status`| Admin | Update order status and courier tracking code |
+
+---
+
+## 💻 Local Development Setup
 
 ```bash
-# 1. Clone or copy the project folder
-cd kaithi_ayurveda
+# 1. Clone the repository
+git clone https://github.com/khakhkharrushit/kaithi-ayurveda.git
+cd kaithi-ayurveda
 
-# 2. Install dependencies
-pip install -r requirements.txt
+# 2. Install all dependencies (Root + Client)
+npm run build
 
-# 3. Run locally
-streamlit run app.py
+# 3. Create .env in root directory
+cp .env.example .env
+
+# 4. Start backend & frontend concurrently
+npm start
+# App runs at: http://localhost:5000
 ```
 
 ---
 
-## 📁 Project Structure
+## 👨‍💻 Developer Profile
 
-```
-kaithi_ayurveda/
-├── app.py                         # Main entry point
-├── requirements.txt
-├── .streamlit/config.toml         # Theme config
-├── data/
-│   └── products.py                # Product data (JSON-style dicts)
-└── components/
-    ├── styles.py                  # Global CSS injection
-    ├── navbar.py                  # Fixed top navigation
-    ├── hero.py                    # Hero section with animations
-    ├── counters.py                # Animated stats counters
-    ├── products.py                # Product grid with search/filter
-    ├── product_detail.py          # Full detail page + 3D viewer
-    ├── about.py                   # Brand story section
-    ├── videos.py                  # Process video section
-    ├── instagram.py               # Instagram feed grid
-    ├── testimonials.py            # Customer reviews
-    └── contact.py                 # Contact form + footer
-```
+**Rushit Khakhkhar**  
+- **Degree:** B.Tech in Information Technology (4th Year)  
+- **GitHub:** [@khakhkharrushit](https://github.com/khakhkharrushit)  
+- **Live Demo:** [https://kaithi-ayurveda.onrender.com/](https://kaithi-ayurveda.onrender.com/)  
 
----
-
-## ➕ Adding a New Product
-
-Open `data/products.py` and add a new dict to the `PRODUCTS` list:
-
-```python
-{
-    "id": 7,                          # Unique integer ID
-    "name": "Rose Water Toner",
-    "price": "₹249",
-    "category": "Face Care",          # Used for filter dropdown
-    "short_desc": "Steam-distilled Bulgarian rose toner",
-    "description": "Full description here...",
-    "ingredients": ["Rose Petals", "Witch Hazel", "Glycerin"],
-    "benefits": ["Tightens pores", "Hydrates", "Balances pH"],
-    "how_made": "Description of the artisanal process...",
-    "video_url": "https://www.youtube.com/embed/YOUR_VIDEO_ID",
-    "badge": "New",                   # "" | "New" | "Bestseller"
-    "rating": 4.7,
-    "reviews": 88,
-    "weight": "100ml",
-    "emoji": "🌹",
-    "color": "#E8A0A0",              # Hex color for 3D jar + card accent
-},
-```
-
-**That's it.** The product will auto-appear in the grid, search, and filter.
-
----
-
-## 🌐 Adding a Real 3D Model (GLB/GLTF)
-
-The 3D viewer currently uses procedurally generated Three.js geometry.
-Here's how to upgrade to a real product model:
-
-### Option A: Use Google's `<model-viewer>` (Easiest)
-
-1. Export your product as `.glb` (Blender → File → Export → glTF 2.0)
-2. Host the file on a CDN (e.g., Cloudflare R2, AWS S3, or Firebase Storage)
-3. In `components/product_detail.py`, replace the Three.js iframe with:
-
-```python
-components.html(f"""
-<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-<model-viewer
-    src="https://your-cdn.com/models/{product['id']}.glb"
-    alt="{product['name']}"
-    auto-rotate
-    camera-controls
-    shadow-intensity="1"
-    style="width:100%;height:400px;border-radius:16px;background:#FAF7F2;"
-    exposure="1.2"
-    ar>
-</model-viewer>
-""", height=420)
-```
-
-4. Add `"3d_model": "https://your-cdn.com/models/product1.glb"` to each product dict.
-
-### Option B: Load GLB in Three.js (Advanced)
-
-1. Host your `.glb` file on a public CDN
-2. In `product_detail.py`, add the GLTFLoader:
-
-```javascript
-// Add to Three.js script:
-import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
-
-const loader = new GLTFLoader();
-loader.load('https://your-cdn.com/model.glb', function(gltf) {
-    scene.add(gltf.scene);
-    // Optionally auto-rotate
-});
-```
-
-### Option C: AR-Ready on Mobile
-
-Use `<model-viewer>` with `ar` and `ar-modes="webxr scene-viewer"` for AR view on Android.
-
----
-
-## 🌍 Deploy to Streamlit Cloud
-
-1. Push project to a GitHub repo
-2. Go to https://share.streamlit.io
-3. Connect your repo → select `app.py` as entrypoint
-4. Done! Free hosting.
-
----
-
-## 🎨 Customization Cheatsheet
-
-| What to change | Where |
-|---|---|
-| Brand colors | `components/styles.py` → CSS variables |
-| Dark/light theme defaults | `app.py` → `st.session_state.dark_mode = True/False` |
-| Product data | `data/products.py` |
-| Hero tagline | `components/hero.py` → `.hero-title` |
-| About story | `components/about.py` |
-| Instagram handle | `components/instagram.py` → `.handle` |
-| WhatsApp number | `components/contact.py` → `wa.me/` link |
-| Video embeds | Replace YouTube embed URLs in `data/products.py` and `components/videos.py` |
-
----
-
-## 📦 Tech Stack
-
-- **Streamlit** — Python web framework
-- **Three.js r128** — 3D product viewer (via CDN in `components.html`)
-- **Google Fonts** — Cormorant Garamond + Jost
-- **Pure CSS animations** — no extra JS libraries needed
-- **session_state** — cart, dark mode, selected product
-
----
-
-*Built with 🌿 for Kaithi Ayurveda*
+*Engineered with precision for Kaithi Ayurveda · Pure. Handmade. Ancient.*
