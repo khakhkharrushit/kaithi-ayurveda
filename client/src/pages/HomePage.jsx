@@ -135,11 +135,7 @@ export default function HomePage({ onSelectProduct, searchQuery, onCheckout }) {
               <p style={{ color: 'var(--text-muted)' }}>Try adjusting your search query or category filter.</p>
             </div>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '28px'
-            }}>
+            <div className="product-grid">
               {products.map(product => (
                 <ProductCard
                   key={product.id}

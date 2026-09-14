@@ -391,8 +391,44 @@ img {
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 28px;
+}
+
+.mobile-nav-toggle {
+  display: none !important;
+}
+
+@media (max-width: 840px) {
+  .desktop-nav {
+    display: none !important;
+  }
+  .mobile-nav-toggle {
+    display: flex !important;
+  }
+  .container {
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
   .drawer-panel {
-    max-width: 100%;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .modal-backdrop {
+    padding: 12px;
+  }
+  .modal-dialog {
+    border-radius: 16px;
+  }
+  .luxury-card {
+    border-radius: 12px;
   }
 }
