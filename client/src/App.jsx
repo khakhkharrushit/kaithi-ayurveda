@@ -24,6 +24,17 @@ function MainApp() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Reset page and sensitive order details when user logs out
+  React.useEffect(() => {
+    if (!user) {
+      setActiveOrder(null);
+      if (['checkout', 'order_success', 'profile', 'admin'].includes(currentPage)) {
+        setCurrentPage('home');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }, [user, currentPage]);
+
   const navigateTo = (page) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
