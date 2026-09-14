@@ -28,12 +28,11 @@ function MainApp() {
   React.useEffect(() => {
     if (!user) {
       setActiveOrder(null);
-      if (['checkout', 'order_success', 'profile', 'admin'].includes(currentPage)) {
-        setCurrentPage('home');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+      // Always go home on sign-out so checkout form state is never visible
+      setCurrentPage('home');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [user, currentPage]);
+  }, [user]);
 
   const navigateTo = (page) => {
     setCurrentPage(page);
@@ -96,6 +95,7 @@ function MainApp() {
 
         {currentPage === 'checkout' && (
           <CheckoutPage
+            key={user?.id ?? 'guest'}
             onBack={() => navigateTo('home')}
             onOrderSuccess={handleOrderSuccess}
           />

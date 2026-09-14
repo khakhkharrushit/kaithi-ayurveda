@@ -53,13 +53,13 @@ export default function CheckoutPage({ onBack, onOrderSuccess }) {
   useEffect(() => {
     window.scrollTo(0, 0);
     if (user) {
-      if (!name) setName(user.name || '');
-      if (!email) setEmail(user.email || '');
-      if (!phone) setPhone(user.phone || '');
-      if (!address) setAddress(user.address || '');
-      if (!city) setCity(user.city || 'Kodinar');
-      if (!state) setState(user.state || 'Gujarat');
-      if (!pincode) setPincode(user.pincode || '362720');
+      setName(user.name || '');
+      setEmail(user.email || '');
+      setPhone(user.phone || '');
+      setAddress(user.address || '');
+      setCity(user.city || 'Kodinar');
+      setState(user.state || 'Gujarat');
+      setPincode(user.pincode || '362720');
     }
   }, [user]);
 
