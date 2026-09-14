@@ -345,7 +345,7 @@ export default function AdminPage({ onViewOrderInvoice, onBackToStore }) {
 
             {/* Status Filter Buttons */}
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {['All', 'Placed', 'Processing', 'Shipped', 'Delivered'].map(status => (
+              {['All', 'Placed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
@@ -399,11 +399,19 @@ export default function AdminPage({ onViewOrderInvoice, onBackToStore }) {
                       </td>
 
                       {/* Customer */}
-                      <td style={{ padding: '14px 10px' }}>
-                        <strong style={{ display: 'block' }}>{order.customer_name}</strong>
-                        <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', display: 'block' }}>
-                          {order.city}, {order.state} · {order.customer_phone}
+                      <td style={{ padding: '14px 10px', maxWidth: '240px' }}>
+                        <strong style={{ display: 'block', color: 'var(--text-primary)' }}>{order.customer_name}</strong>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
+                          {order.shipping_address}, {order.city}, {order.state} - {order.pincode}
                         </span>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--accent-gold)', display: 'block', marginTop: '2px' }}>
+                          📞 {order.customer_phone} · ✉️ {order.customer_email}
+                        </span>
+                        {order.notes && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic', display: 'block', marginTop: '3px', background: 'rgba(201,169,110,0.08)', padding: '2px 6px', borderRadius: '4px' }}>
+                            💬 Note: {order.notes}
+                          </span>
+                        )}
                       </td>
 
                       {/* Items */}
