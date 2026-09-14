@@ -250,8 +250,20 @@ export default function ProfilePage({ onViewOrderInvoice, onContinueShopping }) 
                           fontSize: '0.72rem',
                           fontWeight: 600,
                           textTransform: 'uppercase',
-                          background: order.order_status === 'Delivered' ? 'var(--accent-forest-light)' : 'var(--accent-gold-light)',
-                          color: order.order_status === 'Delivered' ? 'var(--accent-sage)' : 'var(--accent-gold)'
+                          background: order.order_status === 'Delivered' 
+                            ? 'var(--accent-forest-light)' 
+                            : order.order_status === 'Cancelled'
+                            ? 'rgba(155, 44, 59, 0.12)'
+                            : order.order_status === 'Shipped'
+                            ? 'rgba(42, 90, 150, 0.12)'
+                            : 'var(--accent-gold-light)',
+                          color: order.order_status === 'Delivered' 
+                            ? 'var(--accent-sage)' 
+                            : order.order_status === 'Cancelled'
+                            ? 'var(--accent-crimson)'
+                            : order.order_status === 'Shipped'
+                            ? '#3B82F6'
+                            : 'var(--accent-gold)'
                         }}>
                           {order.order_status}
                         </span>
@@ -260,6 +272,24 @@ export default function ProfilePage({ onViewOrderInvoice, onContinueShopping }) 
                         </strong>
                       </div>
                     </div>
+
+                    {/* Tracking details if available */}
+                    {order.tracking_number && (
+                      <div style={{
+                        padding: '8px 12px',
+                        background: 'var(--accent-gold-light)',
+                        border: '1px solid var(--accent-gold-border)',
+                        borderRadius: '8px',
+                        fontSize: '0.76rem',
+                        marginBottom: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <span>🚚 Courier Tracking: <strong>{order.tracking_number}</strong></span>
+                        <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>In Transit</span>
+                      </div>
+                    )}
 
                     {/* Order items list */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
