@@ -1,0 +1,35 @@
+{
+  "name": "files-(1)",
+  "version": "1.0.0",
+  "description": "A luxury Ayurvedic brand experience built with Streamlit + embedded Three.js 3D.",
+  "main": "index.js",
+  "scripts": {
+    "server": "node server/index.js",
+    "client": "npm run dev --prefix client",
+    "build": "npm --prefix client install && npm --prefix client run build",
+    "start": "node server/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khakhkharrushit/kaithi-ayurveda.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/khakhkharrushit/kaithi-ayurveda/issues"
+  },
+  "homepage": "https://github.com/khakhkharrushit/kaithi-ayurveda#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "google-auth-library": "^11.0.2",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^10.0.10",
+    "razorpay": "^2.9.8"
+  }
+}
