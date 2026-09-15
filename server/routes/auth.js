@@ -5,6 +5,30 @@ const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 const { sendOtpEmail } = require('../mailer');
+const nodemailer = require('nodemailer');
+
+// Diagnostic endpoint to test SMTP connection directly
+router.get('/test-smtp', async (req, res) => {
+  try {
+    const user = (process.env.SMTP_USER || '').trim();
+    const pass = (process.env.SMTP_PASS || '').trim().replace(/\s+/g, '');
+    if (!user || !pass) {
+      return res.status(400).json({ error: 'SMTP_USER or SMTP_PASS not set in environment', user: user || '(empty)' });
+    }
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
+    });
+    await transporter.verify();
+    res.json({ success: true, message: `SMTP connected successfully to Gmail as ${user}!` });
+  } catch (err) {
+    console.error('SMTP verify test failed:', err);
+    res.status(500).json({ success: false, error: err.message, user: process.env.SMTP_USER });
+  }
+});
 
 // Register a new customer
 router.post('/register', (req, res) => {
