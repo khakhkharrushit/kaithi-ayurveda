@@ -9,7 +9,7 @@ const nodemailer = require('nodemailer');
 
 // Diagnostic endpoint to test email engine (Brevo + Resend + SMTP)
 router.get('/test-smtp', async (req, res) => {
-  const user = (process.env.SMTP_USER || 'khakhkharrushit@gmail.com').trim();
+  const user = (process.env.SMTP_USER || 'kaithiayurveda@gmail.com').trim();
   const brevoKey = (process.env.BREVO_API_KEY || '').trim();
   const resendKey = (process.env.RESEND_API_KEY || '').trim();
 

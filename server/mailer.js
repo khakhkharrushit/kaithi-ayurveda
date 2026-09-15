@@ -41,7 +41,7 @@ async function dispatchEmail({ to, subject, html, fromName = 'Kaithi Ayurveda' }
   // 1. Brevo HTTPS REST API (100% Free, sends to ANY email in the world over HTTPS!)
   if (brevoKey) {
     try {
-      const senderEmail = (process.env.SMTP_USER || 'khakhkharrushit@gmail.com').trim();
+      const senderEmail = (process.env.SMTP_USER || 'kaithiayurveda@gmail.com').trim();
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -139,7 +139,7 @@ async function sendOtpEmail(toEmail, otp) {
 }
 
 async function sendAdminNewOrderNotification(order) {
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'khakhkharrushit@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'kaithiayurveda@gmail.com';
   const siteUrl = process.env.SITE_URL || 'https://kaithi-ayurveda.onrender.com';
   const itemsHtml = (order.items || []).map(i =>
     `<tr>
