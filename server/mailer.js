@@ -58,6 +58,70 @@ async function sendOtpEmail(toEmail, otp) {
   }
 }
 
+async function sendAdminNewOrderNotification(order) {
+  const t = getTransporter();
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'khakhkharrushit@gmail.com';
+  if (!t) { console.log(`[ADMIN ORDER ALERT] ${order.order_number} to ${adminEmail}`); return { sent: false }; }
+  const siteUrl = process.env.SITE_URL || 'https://kaithi-ayurveda.onrender.com';
+  const itemsHtml = (order.items || []).map(i =>
+    `<tr>
+      <td style="padding:10px 0;border-bottom:1px solid rgba(201,169,110,0.15);font-size:13px;color:#F5EFEB;"><strong>${i.product_name||i.name}</strong><br/><span style="color:#8C9985;font-size:11px;">${i.weight||''}</span></td>
+      <td style="padding:10px 0;border-bottom:1px solid rgba(201,169,110,0.15);font-size:13px;color:#D8D2C6;text-align:center;">&times;${i.quantity}</td>
+      <td style="padding:10px 0;border-bottom:1px solid rgba(201,169,110,0.15);font-size:13px;color:#C9A96E;text-align:right;"><strong>&#8377;${i.price*i.quantity}</strong></td>
+    </tr>`
+  ).join('');
+
+  const html = wrapHtml(`
+    <div style="background:rgba(201,169,110,0.15);border:1px solid #C9A96E;border-radius:8px;padding:14px;text-align:center;margin-bottom:20px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#A3B899;">New Order Received</div>
+      <div style="font-size:24px;font-weight:bold;color:#C9A96E;letter-spacing:2px;margin:4px 0;">&#8377;${order.total_amount} &middot; ${order.order_number}</div>
+      <div style="font-size:12px;color:#5BBF74;">Payment Method: ${order.payment_method?.toUpperCase() || 'UPI/ONLINE'} (${order.payment_status?.toUpperCase() || 'PAID'})</div>
+    </div>
+
+    <h3 style="color:#C9A96E;font-size:16px;margin:0 0 10px;border-bottom:1px solid rgba(201,169,110,0.2);padding-bottom:6px;">Customer Details</h3>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;font-size:13px;">
+      <tr><td style="color:#8C9985;padding:4px 0;">Name:</td><td style="color:#F5EFEB;padding:4px 0;text-align:right;"><strong>${order.customer_name}</strong></td></tr>
+      <tr><td style="color:#8C9985;padding:4px 0;">Email:</td><td style="color:#F5EFEB;padding:4px 0;text-align:right;"><a href="mailto:${order.customer_email}" style="color:#C9A96E;text-decoration:none;">${order.customer_email}</a></td></tr>
+      <tr><td style="color:#8C9985;padding:4px 0;">Phone:</td><td style="color:#F5EFEB;padding:4px 0;text-align:right;"><a href="tel:${order.customer_phone}" style="color:#C9A96E;text-decoration:none;">${order.customer_phone}</a></td></tr>
+      <tr><td style="color:#8C9985;padding:4px 0;">Address:</td><td style="color:#D8D2C6;padding:4px 0;text-align:right;">${order.shipping_address}, ${order.city}, ${order.state} &ndash; ${order.pincode}</td></tr>
+    </table>
+
+    <h3 style="color:#C9A96E;font-size:16px;margin:0 0 10px;border-bottom:1px solid rgba(201,169,110,0.2);padding-bottom:6px;">Ordered Items</h3>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      <thead><tr>
+        <th style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#6E7D6A;text-align:left;padding-bottom:6px;">Item</th>
+        <th style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#6E7D6A;text-align:center;padding-bottom:6px;">Qty</th>
+        <th style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#6E7D6A;text-align:right;padding-bottom:6px;">Amount</th>
+      </tr></thead>
+      <tbody>${itemsHtml}</tbody>
+    </table>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr><td style="font-size:13px;color:#8C9985;padding:2px 0;">Subtotal</td><td style="font-size:13px;color:#D8D2C6;text-align:right;padding:2px 0;">&#8377;${order.subtotal || order.total_amount}</td></tr>
+      ${order.discount_amount>0?`<tr><td style="font-size:13px;color:#8C9985;padding:2px 0;">Discount (${order.coupon_code||'Promo'})</td><td style="font-size:13px;color:#5BBF74;text-align:right;padding:2px 0;">&minus;&#8377;${order.discount_amount}</td></tr>`:''}
+      <tr><td style="font-size:13px;color:#8C9985;padding:2px 0;">Shipping</td><td style="font-size:13px;color:#D8D2C6;text-align:right;padding:2px 0;">${order.shipping_fee===0?'FREE':'&#8377;'+order.shipping_fee}</td></tr>
+      <tr><td style="font-size:16px;font-weight:bold;color:#F5EFEB;padding:8px 0 0;">Total Order Value</td><td style="font-size:18px;font-weight:bold;color:#C9A96E;text-align:right;padding:8px 0 0;">&#8377;${order.total_amount}</td></tr>
+    </table>
+
+    <div style="text-align:center;margin-top:24px;">
+      <a href="${siteUrl}" style="display:inline-block;background:#C9A96E;color:#0D1F12;font-weight:bold;font-size:13px;padding:12px 28px;border-radius:25px;text-decoration:none;letter-spacing:1px;">&#128203; Open Admin Portal</a>
+    </div>
+  `);
+
+  try {
+    await t.sendMail({
+      from: `"Kaithi Orders" <${process.env.SMTP_USER}>`,
+      to: adminEmail,
+      subject: `\uD83D\uDEA8 New Order Alert: ${order.order_number} (\u20B9${order.total_amount}) \u2014 ${order.customer_name}`,
+      html
+    });
+    return { sent: true };
+  } catch (err) {
+    console.error('sendAdminNewOrderNotification error:', err.message);
+    return { sent: false, error: err.message };
+  }
+}
+
 async function sendOrderConfirmationEmail(order) {
   const t = getTransporter();
   if (!t) { console.log(`[ORDER CONFIRM] ${order.customer_email} ${order.order_number}`); return { sent: false }; }
@@ -93,7 +157,17 @@ async function sendOrderConfirmationEmail(order) {
     </div>
     <p style="margin:20px 0 0;font-size:12px;color:#6E7D6A;text-align:center;">Questions? Reply to this email or call +91 9228207999</p>
   `);
-  await t.sendMail({ from: `"Kaithi Ayurveda" <${process.env.SMTP_USER}>`, to: order.customer_email, subject: `\u2705 Order Confirmed \u2014 ${order.order_number} | Kaithi Ayurveda`, html });
+
+  try {
+    // Send customer confirmation
+    await t.sendMail({ from: `"Kaithi Ayurveda" <${process.env.SMTP_USER}>`, to: order.customer_email, subject: `\u2705 Order Confirmed \u2014 ${order.order_number} | Kaithi Ayurveda`, html });
+  } catch (err) {
+    console.error('sendOrderConfirmationEmail error:', err.message);
+  }
+
+  // Also send Admin Notification alert
+  sendAdminNewOrderNotification(order).catch(err => console.error('Admin order alert error:', err.message));
+
   return { sent: true };
 }
 
@@ -144,4 +218,9 @@ async function sendOrderStatusEmail(order) {
   return { sent: true };
 }
 
-module.exports = { sendOtpEmail, sendOrderConfirmationEmail, sendOrderStatusEmail };
+module.exports = {
+  sendOtpEmail,
+  sendOrderConfirmationEmail,
+  sendOrderStatusEmail,
+  sendAdminNewOrderNotification
+};
