@@ -33,8 +33,8 @@ export default function CheckoutPage({ onBack, onOrderSuccess }) {
   const [processing, setProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const merchantVpa = 'rushitkhakhkharadvocate@okhdfcbank';
-  const merchantNumber = '9228207999';
+  const merchantVpa = 'nidhikhakhkhar22@okaxis';
+  const merchantNumber = '9428704882';
   const upiPayUrl = `upi://pay?pa=${merchantVpa}&pn=Kaithi%20Ayurveda&am=${totalAmount}&cu=INR&tn=Kaithi%20Ayurveda%20Order`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiPayUrl)}`;
 
