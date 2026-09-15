@@ -32,6 +32,18 @@ router.post('/', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Missing required shipping or items information' });
     }
 
+    const cleanPhone = (customer_phone || '').replace(/\D/g, '');
+    if (cleanPhone.length !== 10) {
+      return res.status(400).json({ error: 'Please provide a valid 10-digit mobile number (e.g. 9876543210)' });
+    }
+
+    if (payment_method && payment_method.toLowerCase().includes('upi') && payment_method.includes('0%')) {
+      const cleanUtr = (razorpay_payment_id || '').replace(/\D/g, '');
+      if (cleanUtr.length !== 12) {
+        return res.status(400).json({ error: 'Please provide the exact 12-digit UPI UTR / Transaction Reference Number' });
+      }
+    }
+
     const order_number = 'KA-' + Math.floor(100000 + Math.random() * 900000);
     const user_id = req.user ? req.user.id : null;
 

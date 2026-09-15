@@ -142,13 +142,22 @@ export default function CheckoutPage({ onBack, onOrderSuccess }) {
     setErrorMsg('');
 
     if (!name || !email || !phone || !address) {
-      setErrorMsg('Please provide your complete name, email, phone, and delivery address.');
+      setErrorMsg('Please provide your complete name, email, mobile number, and delivery address.');
       return;
     }
 
-    if (paymentMethod === 'upi_direct' && !upiUtr.trim()) {
-      setErrorMsg('Please enter the 12-digit UPI UTR / Transaction Reference Number after completing payment.');
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length !== 10) {
+      setErrorMsg('Please enter a valid 10-digit mobile number (e.g. 9876543210).');
       return;
+    }
+
+    if (paymentMethod === 'upi_direct') {
+      const cleanUtr = upiUtr.replace(/\D/g, '');
+      if (cleanUtr.length !== 12) {
+        setErrorMsg('Please enter the exact 12-digit UPI UTR / Transaction Reference Number (e.g. 425910382910).');
+        return;
+      }
     }
 
     setProcessing(true);
@@ -156,10 +165,11 @@ export default function CheckoutPage({ onBack, onOrderSuccess }) {
     try {
       // 1. Direct Zero-Fee UPI Payment
       if (paymentMethod === 'upi_direct') {
+        const cleanUtr = upiUtr.replace(/\D/g, '');
         await verifyAndCreateOrder({
           payment_method: 'UPI Direct (0% Fee)',
           payment_status: 'paid',
-          razorpay_payment_id: `UTR: ${upiUtr.trim()}`
+          razorpay_payment_id: `UTR: ${cleanUtr}`
         });
         return;
       }
@@ -366,13 +376,14 @@ export default function CheckoutPage({ onBack, onOrderSuccess }) {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Mobile Number *</label>
+                    <label className="form-label">Mobile Number (10 Digits) *</label>
                     <input
                       type="tel"
                       required
-                      placeholder="+91 9876543210"
+                      placeholder="9876543210"
+                      maxLength={10}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       className="form-input"
                     />
                   </div>
@@ -597,19 +608,19 @@ export default function CheckoutPage({ onBack, onOrderSuccess }) {
                         {/* 12-Digit UTR Input */}
                         <div style={{ width: '100%', maxWidth: '340px', marginTop: '18px', textAlign: 'left' }}>
                           <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                            Enter 12-digit UPI Reference / UTR No. *
+                            Enter Exact 12-digit UPI Reference / UTR No. *
                           </label>
                           <input
                             type="text"
                             placeholder="e.g. 425910382910"
-                            maxLength={16}
+                            maxLength={12}
                             value={upiUtr}
-                            onChange={(e) => setUpiUtr(e.target.value)}
+                            onChange={(e) => setUpiUtr(e.target.value.replace(/\D/g, '').slice(0, 12))}
                             className="form-input"
-                            style={{ textAlign: 'center', letterSpacing: '0.1em', fontWeight: 600 }}
+                            style={{ textAlign: 'center', letterSpacing: '0.12em', fontWeight: 600, fontSize: '1rem' }}
                           />
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                            Found in your GPay / PhonePe / Paytm transaction details receipt.
+                          <span style={{ fontSize: '0.7rem', color: upiUtr.length === 12 ? '#5BBF74' : 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                            {upiUtr.length}/12 Digits {upiUtr.length === 12 ? '✓ Valid UTR' : '(Found in your GPay/PhonePe receipt)'}
                           </span>
                         </div>
                       </div>

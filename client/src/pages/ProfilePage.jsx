@@ -139,12 +139,13 @@ export default function ProfilePage({ onViewOrderInvoice, onContinueShopping, on
               </div>
 
               <div className="form-group">
-                <label className="form-label">Contact Phone</label>
+                <label className="form-label">Contact Phone (10 Digits)</label>
                 <input
                   type="tel"
-                  placeholder="+91 9876543210"
+                  placeholder="9876543210"
+                  maxLength={10}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   className="form-input"
                 />
               </div>
