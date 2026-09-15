@@ -113,12 +113,10 @@ router.post('/send-otp', async (req, res) => {
       ON CONFLICT(email) DO UPDATE SET otp = excluded.otp, expires_at = excluded.expires_at
     `).run(cleanEmail, otp, expiresAt);
 
-    // Send real email via mailer (falls back to console log in dev)
-    try {
-      await sendOtpEmail(cleanEmail, otp);
-    } catch (mailErr) {
+    // Send real email via mailer asynchronously (never blocks the UI)
+    sendOtpEmail(cleanEmail, otp).catch(mailErr => {
       console.warn('Email delivery failed:', mailErr.message);
-    }
+    });
 
     res.json({
       success: true,

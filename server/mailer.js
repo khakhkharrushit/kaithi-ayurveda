@@ -9,10 +9,11 @@ function getTransporter() {
   const pass = (process.env.SMTP_PASS || '').trim().replace(/\s+/g, '');
   if (!user || !pass) return null;
   _transporter = nodemailer.createTransport({
-    host: (process.env.SMTP_HOST || 'smtp.gmail.com').trim(),
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: { user, pass }
+    service: 'gmail',
+    auth: { user, pass },
+    connectionTimeout: 6000,
+    greetingTimeout: 6000,
+    socketTimeout: 6000
   });
   return _transporter;
 }
@@ -48,8 +49,13 @@ async function sendOtpEmail(toEmail, otp) {
     </div>
     <p style="font-size:13px;color:#8C9985;">If you didn't request this, ignore this email.</p>
   `);
-  await t.sendMail({ from: `"Kaithi Ayurveda" <${process.env.SMTP_USER}>`, to: toEmail, subject: `${otp} \u2014 Kaithi Ayurveda Verification Code`, html });
-  return { sent: true };
+  try {
+    await t.sendMail({ from: `"Kaithi Ayurveda" <${process.env.SMTP_USER}>`, to: toEmail, subject: `${otp} \u2014 Kaithi Ayurveda Verification Code`, html });
+    return { sent: true };
+  } catch (err) {
+    console.error('sendOtpEmail error:', err.message);
+    return { sent: false, error: err.message };
+  }
 }
 
 async function sendOrderConfirmationEmail(order) {
