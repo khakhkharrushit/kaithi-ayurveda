@@ -41,18 +41,17 @@ function MainApp() {
     }
   }, []);
 
-  // Reset page and sensitive order details when user logs out
+  // Reset page and sensitive order details only on explicit logout from protected pages
+  const prevUserRef = React.useRef(user);
   React.useEffect(() => {
-    if (!user) {
+    if (prevUserRef.current && !user) {
       setActiveOrder(null);
-      // Always go home on sign-out so checkout form state is never visible
-      setCurrentPage('home');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (currentPage === 'admin' && user.role !== 'admin') {
-      // A regular (non-admin) customer signed in while on the admin page → send them home
-      setCurrentPage('home');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (currentPage === 'checkout' || currentPage === 'profile') {
+        setCurrentPage('home');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
+    prevUserRef.current = user;
   }, [user, currentPage]);
 
   const navigateTo = (page) => {
