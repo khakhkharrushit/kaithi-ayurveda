@@ -27,7 +27,7 @@ function wrapHtml(bodyHtml) {
 </td></tr>
 <tr><td style="padding:32px 40px;color:#D8D2C6;font-size:15px;line-height:1.7;">${bodyHtml}</td></tr>
 <tr><td style="padding:20px 40px 28px;text-align:center;border-top:1px solid rgba(201,169,110,0.2);">
-  <p style="margin:0;font-size:11px;color:#6E7D6A;letter-spacing:1px;">Ravi Complex, Avni Apartment, Kodinar, Gujarat &ndash; 362720<br/>&#128222; +91 9228207999 &nbsp;|&nbsp; kaithi-ayurveda.onrender.com</p>
+  <p style="margin:0;font-size:11px;color:#6E7D6A;letter-spacing:1px;">Ravi Complex, Avni Apartment, Kodinar, Gujarat &ndash; 362720<br/>&#128222; +91 9428704882 &nbsp;|&nbsp; kaithi-ayurveda.onrender.com</p>
 </td></tr>
 </table>
 </td></tr></table></body></html>`;
@@ -225,7 +225,7 @@ async function sendOrderConfirmationEmail(order) {
     <div style="text-align:center;margin-top:24px;">
       <a href="${siteUrl}?feedback=1&amp;order=${order.order_number}" style="display:inline-block;background:#C9A96E;color:#0D1F12;font-weight:bold;font-size:13px;padding:12px 28px;border-radius:25px;text-decoration:none;letter-spacing:1px;">&#11088; Share Your Feedback</a>
     </div>
-    <p style="margin:20px 0 0;font-size:12px;color:#6E7D6A;text-align:center;">Questions? Reply to this email or call +91 9228207999</p>
+    <p style="margin:20px 0 0;font-size:12px;color:#6E7D6A;text-align:center;">Questions? Reply to this email or call +91 9428704882</p>
   `);
 
   // Fire both customer and admin notifications
@@ -273,7 +273,7 @@ async function sendOrderStatusEmail(order) {
     </div>
     ${trackingHtml}
     ${feedbackHtml}
-    <p style="margin:20px 0 0;font-size:12px;color:#6E7D6A;text-align:center;">Questions? Reply to this email or call +91 9228207999</p>
+    <p style="margin:20px 0 0;font-size:12px;color:#6E7D6A;text-align:center;">Questions? Reply to this email or call +91 9428704882</p>
   `);
 
   return dispatchEmail({
