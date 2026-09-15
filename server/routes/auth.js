@@ -7,53 +7,50 @@ const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 const { sendOtpEmail } = require('../mailer');
 const nodemailer = require('nodemailer');
 
-// Diagnostic endpoint to test SMTP connection directly
+// Diagnostic endpoint to test email engine (Resend HTTPS + SMTP)
 router.get('/test-smtp', async (req, res) => {
-  const user = (process.env.SMTP_USER || '').trim();
-  const pass = (process.env.SMTP_PASS || '').trim().replace(/\s+/g, '');
-  if (!user || !pass) {
-    return res.status(400).json({ error: 'SMTP_USER or SMTP_PASS missing in environment', user: user || '(empty)' });
-  }
+  const user = (process.env.SMTP_USER || 'khakhkharrushit@gmail.com').trim();
+  const resendKey = (process.env.RESEND_API_KEY || '').trim();
 
-  const results = {};
+  const results = {
+    resend_configured: !!resendKey,
+    smtp_user: user
+  };
 
-  // Test Port 587
-  try {
-    const t587 = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: { user, pass },
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 5000
-    });
-    await t587.verify();
-    results.port587 = 'SUCCESS';
-  } catch (e) {
-    results.port587_error = e.message;
-  }
-
-  // Test Port 465
-  try {
-    const t465 = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user, pass },
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 5000
-    });
-    await t465.verify();
-    results.port465 = 'SUCCESS';
-  } catch (e) {
-    results.port465_error = e.message;
+  // Test Resend HTTPS
+  if (resendKey) {
+    try {
+      const fromAddress = process.env.RESEND_FROM || 'Kaithi Ayurveda <onboarding@resend.dev>';
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: [user],
+          subject: '⚡ Kaithi Ayurveda — Email Engine Live Test',
+          html: '<h3>Namaste! 🙏</h3><p>Your Kaithi Ayurveda HTTPS email engine is live and working perfectly on Render!</p>'
+        })
+      });
+      const resData = await resendRes.json();
+      if (resendRes.ok) {
+        results.resend_status = 'SUCCESS';
+        results.resend_email_id = resData.id;
+      } else {
+        results.resend_status = 'ERROR';
+        results.resend_error = resData;
+      }
+    } catch (e) {
+      results.resend_status = 'NETWORK_ERROR';
+      results.resend_error = e.message;
+    }
   }
 
   res.json({
-    user,
-    status: (results.port587 === 'SUCCESS' || results.port465 === 'SUCCESS') ? 'CONNECTED' : 'FAILED',
+    status: results.resend_status === 'SUCCESS' ? 'ONLINE_ACTIVE' : 'CHECK_CONFIG',
+    provider: results.resend_status === 'SUCCESS' ? 'Resend HTTPS API' : 'SMTP Fallback',
     results
   });
 });

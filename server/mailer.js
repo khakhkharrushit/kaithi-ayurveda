@@ -1,11 +1,14 @@
+'use strict';
+const nodemailer = require('nodemailer');
+
 function createTransporter() {
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').trim().replace(/\s+/g, '');
   if (!user || !pass) return null;
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    host: (process.env.SMTP_HOST || 'smtp.gmail.com').trim(),
+    port: parseInt(process.env.SMTP_PORT || '465', 10),
+    secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
     auth: { user, pass },
     tls: { rejectUnauthorized: false }
   });
@@ -30,13 +33,62 @@ function wrapHtml(bodyHtml) {
 </td></tr></table></body></html>`;
 }
 
-async function sendOtpEmail(toEmail, otp) {
-  const t = createTransporter();
-  const user = (process.env.SMTP_USER || '').trim();
-  if (!t) {
-    console.log(`[OTP CONSOLE FALLBACK] ${toEmail}: ${otp}`);
-    return { sent: false, reason: 'SMTP not configured' };
+// Master HTTP + SMTP Dispatcher
+async function dispatchEmail({ to, subject, html, fromName = 'Kaithi Ayurveda' }) {
+  const resendKey = (process.env.RESEND_API_KEY || '').trim();
+
+  // 1. Primary: Resend HTTPS REST API (Bypasses all cloud port blocking)
+  if (resendKey) {
+    try {
+      const fromAddress = process.env.RESEND_FROM || 'Kaithi Ayurveda <onboarding@resend.dev>';
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: Array.isArray(to) ? to : [to],
+          subject,
+          html
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`[RESEND HTTPS SUCCESS] to: ${to}, id: ${data.id}`);
+        return { sent: true, id: data.id, provider: 'resend' };
+      } else {
+        console.warn(`[RESEND HTTPS ERROR RESPONSE]`, data);
+      }
+    } catch (e) {
+      console.error(`[RESEND HTTPS NETWORK ERROR]`, e.message);
+    }
   }
+
+  // 2. Fallback: SMTP Transport
+  const t = createTransporter();
+  if (t) {
+    const user = (process.env.SMTP_USER || '').trim();
+    try {
+      const info = await t.sendMail({
+        from: `"${fromName}" <${user}>`,
+        to,
+        subject,
+        html
+      });
+      console.log(`[SMTP SUCCESS] to: ${to}, id: ${info.messageId}`);
+      return { sent: true, id: info.messageId, provider: 'smtp' };
+    } catch (e) {
+      console.error(`[SMTP ERROR]`, e.message);
+    }
+  }
+
+  console.log(`[EMAIL FALLBACK DEV LOG] to: ${to} | Subject: ${subject}`);
+  return { sent: false, reason: 'No email service available' };
+}
+
+async function sendOtpEmail(toEmail, otp) {
   const html = wrapHtml(`
     <p>Namaste &#128591;</p>
     <p>Use this code to sign in to your <strong style="color:#C9A96E;">Kaithi Ayurveda</strong> account:</p>
@@ -46,44 +98,17 @@ async function sendOtpEmail(toEmail, otp) {
     </div>
     <p style="font-size:13px;color:#8C9985;">If you didn't request this, ignore this email.</p>
   `);
-  try {
-    const info = await t.sendMail({
-      from: `"Kaithi Ayurveda" <${user}>`,
-      to: toEmail,
-      subject: `${otp} \u2014 Kaithi Ayurveda Verification Code`,
-      html
-    });
-    console.log(`[OTP SENT SUCCESS] to: ${toEmail}, messageId: ${info.messageId}`);
-    return { sent: true, messageId: info.messageId };
-  } catch (err) {
-    console.error('[OTP SEND ERROR]', err.message);
-    // Secondary attempt with fallback transport
-    try {
-      const pass = (process.env.SMTP_PASS || '').trim().replace(/\s+/g, '');
-      const altTransporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass }
-      });
-      const altInfo = await altTransporter.sendMail({
-        from: `"Kaithi Ayurveda" <${user}>`,
-        to: toEmail,
-        subject: `${otp} \u2014 Kaithi Ayurveda Verification Code`,
-        html
-      });
-      console.log(`[OTP SENT ALT SUCCESS] to: ${toEmail}, messageId: ${altInfo.messageId}`);
-      return { sent: true, messageId: altInfo.messageId };
-    } catch (altErr) {
-      console.error('[OTP SEND ALT ERROR]', altErr.message);
-      return { sent: false, error: altErr.message };
-    }
-  }
+
+  return dispatchEmail({
+    to: toEmail,
+    subject: `${otp} — Kaithi Ayurveda Verification Code`,
+    html,
+    fromName: 'Kaithi Ayurveda'
+  });
 }
 
 async function sendAdminNewOrderNotification(order) {
-  const t = createTransporter();
-  const user = (process.env.SMTP_USER || '').trim();
-  const adminEmail = process.env.ADMIN_EMAIL || user || 'khakhkharrushit@gmail.com';
-  if (!t) { console.log(`[ADMIN ORDER ALERT] ${order.order_number} to ${adminEmail}`); return { sent: false }; }
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'khakhkharrushit@gmail.com';
   const siteUrl = process.env.SITE_URL || 'https://kaithi-ayurveda.onrender.com';
   const itemsHtml = (order.items || []).map(i =>
     `<tr>
@@ -130,25 +155,15 @@ async function sendAdminNewOrderNotification(order) {
     </div>
   `);
 
-  try {
-    const info = await t.sendMail({
-      from: `"Kaithi Orders" <${user}>`,
-      to: adminEmail,
-      subject: `\uD83D\uDEA8 New Order Alert: ${order.order_number} (\u20B9${order.total_amount}) \u2014 ${order.customer_name}`,
-      html
-    });
-    console.log(`[ADMIN ALERT SENT] to: ${adminEmail}, messageId: ${info.messageId}`);
-    return { sent: true };
-  } catch (err) {
-    console.error('sendAdminNewOrderNotification error:', err.message);
-    return { sent: false, error: err.message };
-  }
+  return dispatchEmail({
+    to: adminEmail,
+    subject: `🚨 New Order Alert: ${order.order_number} (₹${order.total_amount}) — ${order.customer_name}`,
+    html,
+    fromName: 'Kaithi Orders'
+  });
 }
 
 async function sendOrderConfirmationEmail(order) {
-  const t = createTransporter();
-  const user = (process.env.SMTP_USER || '').trim();
-  if (!t) { console.log(`[ORDER CONFIRM] ${order.customer_email} ${order.order_number}`); return { sent: false }; }
   const siteUrl = process.env.SITE_URL || 'https://kaithi-ayurveda.onrender.com';
   const itemsHtml = (order.items || []).map(i =>
     `<tr><td style="padding:8px 0;border-bottom:1px solid rgba(201,169,110,0.12);font-size:13px;color:#D8D2C6;">${i.product_name||i.name}</td><td style="padding:8px 0;border-bottom:1px solid rgba(201,169,110,0.12);font-size:13px;color:#D8D2C6;text-align:center;">&times;${i.quantity}</td><td style="padding:8px 0;border-bottom:1px solid rgba(201,169,110,0.12);font-size:13px;color:#C9A96E;text-align:right;">&#8377;${i.price*i.quantity}</td></tr>`
@@ -182,33 +197,23 @@ async function sendOrderConfirmationEmail(order) {
     <p style="margin:20px 0 0;font-size:12px;color:#6E7D6A;text-align:center;">Questions? Reply to this email or call +91 9228207999</p>
   `);
 
-  try {
-    // Send customer confirmation
-    await t.sendMail({ from: `"Kaithi Ayurveda" <${user}>`, to: order.customer_email, subject: `\u2705 Order Confirmed \u2014 ${order.order_number} | Kaithi Ayurveda`, html });
-  } catch (err) {
-    console.error('sendOrderConfirmationEmail error:', err.message);
-  }
-
-  // Also send Admin Notification alert
-  sendAdminNewOrderNotification(order).catch(err => console.error('Admin order alert error:', err.message));
-
+  // Fire both customer and admin notifications
+  dispatchEmail({ to: order.customer_email, subject: `✅ Order Confirmed — ${order.order_number} | Kaithi Ayurveda`, html, fromName: 'Kaithi Ayurveda' });
+  sendAdminNewOrderNotification(order);
   return { sent: true };
 }
 
 const STATUS_CFG = {
-  'Processing': { emoji: '\u2697\uFE0F', headline: 'Your order is being prepared', color: '#E8A838', body: 'Our herbalists are carefully crafting your Ayurvedic formulations using traditional Kshir Pak Vidhi methods.' },
-  'Shipped':    { emoji: '\uD83D\uDE9A', headline: 'Your order is on its way!',     color: '#4A9EBF', body: 'Your herbal package has been dispatched. Expect delivery within 3\u20137 working days.' },
-  'Out for Delivery': { emoji: '\uD83D\uDCE6', headline: 'Out for delivery today!', color: '#5BBF74', body: 'Your order is with the courier and will arrive at your doorstep today.' },
-  'Delivered':  { emoji: '\uD83C\uDF3F', headline: 'Your order has been delivered!',color: '#5BBF74', body: 'We hope your Kaithi Ayurveda formulations bring you wellness and vitality. Thank you for being part of our healing community!' },
-  'Cancelled':  { emoji: '\u274C',        headline: 'Your order has been cancelled', color: '#C0392B', body: 'Your order has been cancelled. If you were charged, a refund will be initiated within 5\u20137 business days.' }
+  'Processing': { emoji: '⚗️', headline: 'Your order is being prepared', color: '#E8A838', body: 'Our herbalists are carefully crafting your Ayurvedic formulations using traditional Kshir Pak Vidhi methods.' },
+  'Shipped':    { emoji: '🚚', headline: 'Your order is on its way!',     color: '#4A9EBF', body: 'Your herbal package has been dispatched. Expect delivery within 3–7 working days.' },
+  'Out for Delivery': { emoji: '📦', headline: 'Out for delivery today!', color: '#5BBF74', body: 'Your order is with the courier and will arrive at your doorstep today.' },
+  'Delivered':  { emoji: '🌿', headline: 'Your order has been delivered!',color: '#5BBF74', body: 'We hope your Kaithi Ayurveda formulations bring you wellness and vitality. Thank you for being part of our healing community!' },
+  'Cancelled':  { emoji: '❌', headline: 'Your order has been cancelled', color: '#C0392B', body: 'Your order has been cancelled. If you were charged, a refund will be initiated within 5–7 business days.' }
 };
 
 async function sendOrderStatusEmail(order) {
-  const t = createTransporter();
-  const user = (process.env.SMTP_USER || '').trim();
-  if (!t) { console.log(`[ORDER STATUS] ${order.customer_email}: ${order.order_status}`); return { sent: false }; }
   const siteUrl = process.env.SITE_URL || 'https://kaithi-ayurveda.onrender.com';
-  const cfg = STATUS_CFG[order.order_status] || { emoji: '\uD83D\uDCCB', headline: `Status updated: ${order.order_status}`, color: '#C9A96E', body: 'Your order status has been updated.' };
+  const cfg = STATUS_CFG[order.order_status] || { emoji: '📋', headline: `Status updated: ${order.order_status}`, color: '#C9A96E', body: 'Your order status has been updated.' };
   const trackingHtml = order.tracking_number ? `
     <div style="background:rgba(74,158,191,0.1);border:1px solid rgba(74,158,191,0.4);border-radius:8px;padding:14px 20px;margin:20px 0;text-align:center;">
       <span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#A3B899;">Tracking Number</span><br/>
@@ -217,7 +222,7 @@ async function sendOrderStatusEmail(order) {
   const feedbackHtml = order.order_status === 'Delivered' ? `
     <div style="text-align:center;margin-top:28px;">
       <p style="margin:0 0 14px;font-size:14px;color:#A3B899;">How was your experience? Your feedback helps us serve you better.</p>
-      <a href="${siteUrl}?feedback=1&amp;order=${order.order_number}" style="display:inline-block;background:#C9A96E;color:#0D1F12;font-weight:bold;font-size:13px;padding:12px 28px;border-radius:25px;text-decoration:none;letter-spacing:1px;">&#11088; Leave a Review</a>
+      <a href="${siteUrl}?feedback=1&amp;order=${order.order_number}" style="display:inline-block;background:#C9A96E;color:#0D1F12;font-weight:bold;font-size:13px;padding:12px 28px;border-radius:25px;text-decoration:none;letter-spacing:1px;">⭐ Leave a Review</a>
     </div>` : `
     <div style="text-align:center;margin-top:24px;">
       <a href="${siteUrl}" style="display:inline-block;background:rgba(201,169,110,0.15);color:#C9A96E;font-weight:bold;font-size:12px;padding:10px 24px;border-radius:20px;text-decoration:none;border:1px solid rgba(201,169,110,0.4);letter-spacing:1px;">View My Orders</a>
@@ -239,11 +244,17 @@ async function sendOrderStatusEmail(order) {
     ${feedbackHtml}
     <p style="margin:20px 0 0;font-size:12px;color:#6E7D6A;text-align:center;">Questions? Reply to this email or call +91 9228207999</p>
   `);
-  await t.sendMail({ from: `"Kaithi Ayurveda" <${user}>`, to: order.customer_email, subject: `${cfg.emoji} ${order.order_status} \u2014 Order ${order.order_number} | Kaithi Ayurveda`, html });
-  return { sent: true };
+
+  return dispatchEmail({
+    to: order.customer_email,
+    subject: `${cfg.emoji} ${order.order_status} — Order ${order.order_number} | Kaithi Ayurveda`,
+    html,
+    fromName: 'Kaithi Ayurveda'
+  });
 }
 
 module.exports = {
+  dispatchEmail,
   sendOtpEmail,
   sendOrderConfirmationEmail,
   sendOrderStatusEmail,
