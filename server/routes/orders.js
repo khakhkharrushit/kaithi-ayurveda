@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { optionalToken, authenticateToken, requireAdmin } = require('../middleware/auth');
+const { sendOrderConfirmationEmail, sendOrderStatusEmail } = require('../mailer');
 
 // Create new order (Authentication required)
 router.post('/', authenticateToken, (req, res) => {
@@ -98,13 +99,17 @@ router.post('/', authenticateToken, (req, res) => {
     const createdOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
     const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
 
+    const fullOrder = { ...createdOrder, items: orderItems };
+
+    // Fire-and-forget order confirmation email
+    sendOrderConfirmationEmail(fullOrder).catch(err =>
+      console.warn('Order confirmation email failed:', err.message)
+    );
+
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
-      order: {
-        ...createdOrder,
-        items: orderItems
-      }
+      order: fullOrder
     });
   } catch (error) {
     console.error('Error creating order:', error);
@@ -216,6 +221,11 @@ router.patch('/:id/status', requireAdmin, (req, res) => {
 
     const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
     const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(id);
+
+    // Fire-and-forget status update email to customer
+    sendOrderStatusEmail({ ...updatedOrder, items }).catch(err =>
+      console.warn('Status update email failed:', err.message)
+    );
 
     res.json({
       message: `Order status updated to ${order_status}`,

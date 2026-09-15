@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
+const { sendOtpEmail } = require('../mailer');
 
 // Register a new customer
 router.post('/register', (req, res) => {
@@ -112,51 +113,17 @@ router.post('/send-otp', async (req, res) => {
       ON CONFLICT(email) DO UPDATE SET otp = excluded.otp, expires_at = excluded.expires_at
     `).run(cleanEmail, otp, expiresAt);
 
-    console.log(`\n🌿 [Kaithi OTP] Verification code for ${cleanEmail}: ${otp}\n`);
-
-    // If SMTP credentials configured in .env, send real email
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      try {
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-          }
-        });
-
-        await transporter.sendMail({
-          from: `"Kaithi Ayurveda" <${process.env.SMTP_USER}>`,
-          to: cleanEmail,
-          subject: `${otp} is your Kaithi Ayurveda Verification Code`,
-          html: `
-            <div style="font-family: 'Cinzel', Georgia, serif; max-width: 520px; margin: 0 auto; padding: 32px; border: 1px solid #C9A96E; border-radius: 12px; background: #0D1F12; color: #F5EFEB;">
-              <div style="text-align: center; margin-bottom: 24px;">
-                <h1 style="color: #C9A96E; margin: 0; font-size: 26px; letter-spacing: 2px;">KAITHI AYURVEDA</h1>
-                <p style="color: #A3B899; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; margin-top: 4px;">Dr. Nidhi Khakhkhar (BAMS) · Kodinar, Gujarat</p>
-              </div>
-              <p style="font-size: 15px; line-height: 1.6; color: #D8D2C6;">Namaste,</p>
-              <p style="font-size: 14px; line-height: 1.6; color: #D8D2C6;">Use the verification code below to securely sign in to your Kaithi Ayurveda Sanctuary:</p>
-              <div style="background: rgba(201, 169, 110, 0.15); border: 1px dashed #C9A96E; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0;">
-                <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #C9A96E;">${otp}</span>
-              </div>
-              <p style="font-size: 12px; color: #8C9985; text-align: center;">This code is valid for 10 minutes. Please do not share it with anyone.</p>
-              <hr style="border: none; border-top: 1px solid rgba(201, 169, 110, 0.3); margin: 24px 0;" />
-              <p style="font-size: 11px; color: #8C9985; text-align: center; margin: 0;">Ravi Complex, Avni Apartment, Kodinar, Gujarat - 362720</p>
-            </div>
-          `
-        });
-      } catch (mailErr) {
-        console.warn('SMTP delivery failed, falling back to instant code delivery:', mailErr.message);
-      }
+    // Send real email via mailer (falls back to console log in dev)
+    try {
+      await sendOtpEmail(cleanEmail, otp);
+    } catch (mailErr) {
+      console.warn('Email delivery failed:', mailErr.message);
     }
 
     res.json({
       success: true,
       message: `Verification code sent to ${cleanEmail}`,
+      // Only expose OTP in non-production so devs can test without email
       otp: process.env.NODE_ENV !== 'production' ? otp : undefined
     });
   } catch (err) {
