@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { User, Package, MapPin, CheckCircle, Clock, FileText, ArrowRight } from 'lucide-react';
+import { User, Package, MapPin, CheckCircle, Clock, FileText, ArrowRight, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function ProfilePage({ onViewOrderInvoice, onContinueShopping }) {
+export default function ProfilePage({ onViewOrderInvoice, onContinueShopping, onLeaveFeedback }) {
   const { user, token, updateProfile, openAuthModal } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -301,14 +301,31 @@ export default function ProfilePage({ onViewOrderInvoice, onContinueShopping }) 
                       ))}
                     </div>
 
-                    {/* Action: View invoice */}
-                    <button
-                      onClick={() => onViewOrderInvoice(order)}
-                      className="btn-secondary"
-                      style={{ width: '100%', padding: '9px 0', fontSize: '0.78rem' }}
-                    >
-                      <FileText size={14} /> View / Print Tax Invoice
-                    </button>
+                    {/* Action: View invoice & Feedback */}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => onViewOrderInvoice(order)}
+                        className="btn-secondary"
+                        style={{ flex: 1, padding: '9px 0', fontSize: '0.78rem' }}
+                      >
+                        <FileText size={14} /> Tax Invoice
+                      </button>
+                      {onLeaveFeedback && (
+                        <button
+                          onClick={() => onLeaveFeedback(order.order_number)}
+                          className="btn-secondary"
+                          style={{
+                            flex: 1,
+                            padding: '9px 0',
+                            fontSize: '0.78rem',
+                            borderColor: 'var(--accent-gold-border, rgba(201,169,110,0.3))',
+                            color: 'var(--accent-gold, #C9A96E)'
+                          }}
+                        >
+                          <Star size={14} /> Review Order
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

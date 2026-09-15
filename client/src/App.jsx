@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
 import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
+import FeedbackModal from './components/FeedbackModal';
 import Footer from './components/Footer';
 
 import { useAuth } from './context/AuthContext';
@@ -23,6 +24,22 @@ function MainApp() {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [activeOrder, setActiveOrder] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackOrderNumber, setFeedbackOrderNumber] = useState('');
+
+  // Detect ?feedback=1 in URL (e.g. from email link)
+  React.useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('feedback') === '1') {
+        const orderParam = params.get('order') || '';
+        setFeedbackOrderNumber(orderParam);
+        setFeedbackOpen(true);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   // Reset page and sensitive order details when user logs out
   React.useEffect(() => {
@@ -79,6 +96,18 @@ function MainApp() {
 
       <CartDrawer onCheckout={handleStartCheckout} />
       <AuthModal />
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        orderNumber={feedbackOrderNumber}
+        onClose={() => {
+          setFeedbackOpen(false);
+          try {
+            if (window.history.replaceState) {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          } catch (e) {}
+        }}
+      />
 
       <main style={{ flex: 1 }}>
         {currentPage === 'home' && (
@@ -109,6 +138,10 @@ function MainApp() {
           <OrderSuccessPage
             order={activeOrder}
             onContinueShopping={() => navigateTo('home')}
+            onLeaveFeedback={(ordNum) => {
+              setFeedbackOrderNumber(ordNum || activeOrder?.order_number || '');
+              setFeedbackOpen(true);
+            }}
           />
         )}
 
@@ -116,6 +149,10 @@ function MainApp() {
           <ProfilePage
             onViewOrderInvoice={handleViewInvoice}
             onContinueShopping={() => navigateTo('home')}
+            onLeaveFeedback={(ordNum) => {
+              setFeedbackOrderNumber(ordNum || '');
+              setFeedbackOpen(true);
+            }}
           />
         )}
 

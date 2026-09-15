@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, Printer, ArrowRight, Package, Truck, Clock, MapPin, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Printer, ArrowRight, Package, Truck, Clock, MapPin, ShieldCheck, Star } from 'lucide-react';
 
-export default function OrderSuccessPage({ order, onContinueShopping }) {
+export default function OrderSuccessPage({ order, onContinueShopping, onLeaveFeedback }) {
   useEffect(() => {
     window.scrollTo(0, 0);
 
@@ -263,19 +263,32 @@ export default function OrderSuccessPage({ order, onContinueShopping }) {
           </div>
         </div>
 
-        {/* Action Controls: Print & Continue */}
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        {/* Action Controls: Print, Review & Continue */}
+        <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
             onClick={handlePrint}
             className="btn-secondary"
-            style={{ padding: '14px 28px' }}
+            style={{ padding: '14px 24px' }}
           >
             <Printer size={16} /> Print Official Invoice
           </button>
+          {onLeaveFeedback && (
+            <button
+              onClick={() => onLeaveFeedback(order.order_number)}
+              className="btn-secondary"
+              style={{
+                padding: '14px 24px',
+                borderColor: 'var(--accent-gold-border, rgba(201,169,110,0.4))',
+                color: 'var(--accent-gold, #C9A96E)'
+              }}
+            >
+              <Star size={16} /> Share Feedback
+            </button>
+          )}
           <button
             onClick={onContinueShopping}
             className="btn-primary"
-            style={{ padding: '14px 32px' }}
+            style={{ padding: '14px 28px' }}
           >
             Explore More Formulations <ArrowRight size={16} />
           </button>
