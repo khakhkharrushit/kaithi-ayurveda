@@ -17,6 +17,9 @@ import CheckoutPage from './pages/CheckoutPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+import ShippingRefundsPage from './pages/ShippingRefundsPage';
 
 function MainApp() {
   const { user, openAuthModal } = useAuth();
@@ -160,6 +163,18 @@ function MainApp() {
             onViewOrderInvoice={handleViewInvoice}
             onBackToStore={() => navigateTo('home')}
           />
+        )}
+
+        {currentPage === 'privacy' && (
+          <PrivacyPolicyPage onBack={() => navigateTo('home')} />
+        )}
+
+        {currentPage === 'terms' && (
+          <TermsOfServicePage onBack={() => navigateTo('home')} />
+        )}
+
+        {currentPage === 'shipping' && (
+          <ShippingRefundsPage onBack={() => navigateTo('home')} />
         )}
       </main>
 

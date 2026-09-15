@@ -223,9 +223,9 @@ export default function Footer({ onNavigate }) {
         }}>
           <span>© {new Date().getFullYear()} Kaithi Ayurveda. All Rights Reserved. Pure. Handmade. Ancient.</span>
           <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Shipping & Refunds</span>
+            <span onClick={() => onNavigate('privacy')} style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color='var(--gold)'} onMouseLeave={e => e.target.style.color=''}>Privacy Policy</span>
+            <span onClick={() => onNavigate('terms')} style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color='var(--gold)'} onMouseLeave={e => e.target.style.color=''}>Terms of Service</span>
+            <span onClick={() => onNavigate('shipping')} style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color='var(--gold)'} onMouseLeave={e => e.target.style.color=''}>Shipping & Refunds</span>
             {(!user || isAdmin) && (
               <button
                 onClick={() => onNavigate('admin')}
