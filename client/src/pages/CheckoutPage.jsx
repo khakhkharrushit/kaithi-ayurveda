@@ -627,39 +627,7 @@ export default function CheckoutPage({ onBack, onOrderSuccess }) {
                     )}
                   </label>
 
-                  {/* Option 2: Instant Test Payment */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '14px',
-                      padding: '16px',
-                      borderRadius: '12px',
-                      border: paymentMethod === 'test' ? '2px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                      background: paymentMethod === 'test' ? 'var(--accent-gold-light)' : 'var(--bg-surface-muted)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="test"
-                      checked={paymentMethod === 'test'}
-                      onChange={() => setPaymentMethod('test')}
-                      style={{ accentColor: 'var(--accent-gold)', width: '18px', height: '18px' }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Zap size={16} color="var(--accent-gold)" />
-                        <strong style={{ fontSize: '0.92rem' }}>⚡ 1-Click Instant Test Simulation</strong>
-                      </div>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        Simulates a successful payment instantly without opening external banking apps.
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* Option 3: Razorpay */}
+                  {/* Option 2: Razorpay (Cards, NetBanking, Wallets) */}
                   <label
                     style={{
                       display: 'flex',
