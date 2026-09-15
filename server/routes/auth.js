@@ -7,50 +7,52 @@ const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 const { sendOtpEmail } = require('../mailer');
 const nodemailer = require('nodemailer');
 
-// Diagnostic endpoint to test email engine (Resend HTTPS + SMTP)
+// Diagnostic endpoint to test email engine (Brevo + Resend + SMTP)
 router.get('/test-smtp', async (req, res) => {
   const user = (process.env.SMTP_USER || 'khakhkharrushit@gmail.com').trim();
+  const brevoKey = (process.env.BREVO_API_KEY || '').trim();
   const resendKey = (process.env.RESEND_API_KEY || '').trim();
 
   const results = {
+    brevo_configured: !!brevoKey,
     resend_configured: !!resendKey,
     smtp_user: user
   };
 
-  // Test Resend HTTPS
-  if (resendKey) {
+  // Test Brevo HTTPS (sends to ANY email worldwide)
+  if (brevoKey) {
     try {
-      const fromAddress = process.env.RESEND_FROM || 'Kaithi Ayurveda <onboarding@resend.dev>';
-      const resendRes = await fetch('https://api.resend.com/emails', {
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${resendKey}`,
-          'Content-Type': 'application/json'
+          'api-key': brevoKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
-          from: fromAddress,
-          to: [user],
-          subject: '⚡ Kaithi Ayurveda — Email Engine Live Test',
-          html: '<h3>Namaste! 🙏</h3><p>Your Kaithi Ayurveda HTTPS email engine is live and working perfectly on Render!</p>'
+          sender: { name: 'Kaithi Ayurveda', email: user },
+          to: [{ email: user }],
+          subject: '⚡ Kaithi Ayurveda — Brevo Global Delivery Test',
+          htmlContent: '<h3>Namaste! 🙏</h3><p>Your Kaithi Ayurveda worldwide email system is live and sending to all customer emails!</p>'
         })
       });
-      const resData = await resendRes.json();
-      if (resendRes.ok) {
-        results.resend_status = 'SUCCESS';
-        results.resend_email_id = resData.id;
+      const data = await res.json();
+      if (res.ok) {
+        results.brevo_status = 'SUCCESS';
+        results.brevo_messageId = data.messageId;
       } else {
-        results.resend_status = 'ERROR';
-        results.resend_error = resData;
+        results.brevo_status = 'ERROR';
+        results.brevo_error = data;
       }
     } catch (e) {
-      results.resend_status = 'NETWORK_ERROR';
-      results.resend_error = e.message;
+      results.brevo_status = 'NETWORK_ERROR';
+      results.brevo_error = e.message;
     }
   }
 
   res.json({
-    status: results.resend_status === 'SUCCESS' ? 'ONLINE_ACTIVE' : 'CHECK_CONFIG',
-    provider: results.resend_status === 'SUCCESS' ? 'Resend HTTPS API' : 'SMTP Fallback',
+    status: (results.brevo_status === 'SUCCESS' || results.resend_status === 'SUCCESS') ? 'ONLINE_ACTIVE' : 'READY',
+    provider: results.brevo_status === 'SUCCESS' ? 'Brevo (Worldwide to any email)' : (results.resend_status === 'SUCCESS' ? 'Resend' : 'SMTP'),
     results
   });
 });

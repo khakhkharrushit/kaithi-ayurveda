@@ -35,9 +35,40 @@ function wrapHtml(bodyHtml) {
 
 // Master HTTP + SMTP Dispatcher
 async function dispatchEmail({ to, subject, html, fromName = 'Kaithi Ayurveda' }) {
+  const brevoKey = (process.env.BREVO_API_KEY || '').trim();
   const resendKey = (process.env.RESEND_API_KEY || '').trim();
 
-  // 1. Primary: Resend HTTPS REST API (Bypasses all cloud port blocking)
+  // 1. Brevo HTTPS REST API (100% Free, sends to ANY email in the world over HTTPS!)
+  if (brevoKey) {
+    try {
+      const senderEmail = (process.env.SMTP_USER || 'khakhkharrushit@gmail.com').trim();
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: fromName, email: senderEmail },
+          to: (Array.isArray(to) ? to : [to]).map(e => ({ email: e })),
+          subject,
+          htmlContent: html
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`[BREVO HTTPS SUCCESS] to: ${to}, id: ${data.messageId}`);
+        return { sent: true, id: data.messageId, provider: 'brevo' };
+      } else {
+        console.warn(`[BREVO HTTPS ERROR]`, data);
+      }
+    } catch (e) {
+      console.error(`[BREVO HTTPS NETWORK ERROR]`, e.message);
+    }
+  }
+
+  // 2. Resend HTTPS REST API
   if (resendKey) {
     try {
       const fromAddress = process.env.RESEND_FROM || 'Kaithi Ayurveda <onboarding@resend.dev>';
