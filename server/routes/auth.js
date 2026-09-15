@@ -9,25 +9,53 @@ const nodemailer = require('nodemailer');
 
 // Diagnostic endpoint to test SMTP connection directly
 router.get('/test-smtp', async (req, res) => {
+  const user = (process.env.SMTP_USER || '').trim();
+  const pass = (process.env.SMTP_PASS || '').trim().replace(/\s+/g, '');
+  if (!user || !pass) {
+    return res.status(400).json({ error: 'SMTP_USER or SMTP_PASS missing in environment', user: user || '(empty)' });
+  }
+
+  const results = {};
+
+  // Test Port 587
   try {
-    const user = (process.env.SMTP_USER || '').trim();
-    const pass = (process.env.SMTP_PASS || '').trim().replace(/\s+/g, '');
-    if (!user || !pass) {
-      return res.status(400).json({ error: 'SMTP_USER or SMTP_PASS not set in environment', user: user || '(empty)' });
-    }
-    const transporter = nodemailer.createTransport({
+    const t587 = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: { user, pass },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000
+    });
+    await t587.verify();
+    results.port587 = 'SUCCESS';
+  } catch (e) {
+    results.port587_error = e.message;
+  }
+
+  // Test Port 465
+  try {
+    const t465 = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
       auth: { user, pass },
-      tls: { rejectUnauthorized: false }
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000
     });
-    await transporter.verify();
-    res.json({ success: true, message: `SMTP connected successfully to Gmail as ${user}!` });
-  } catch (err) {
-    console.error('SMTP verify test failed:', err);
-    res.status(500).json({ success: false, error: err.message, user: process.env.SMTP_USER });
+    await t465.verify();
+    results.port465 = 'SUCCESS';
+  } catch (e) {
+    results.port465_error = e.message;
   }
+
+  res.json({
+    user,
+    status: (results.port587 === 'SUCCESS' || results.port465 === 'SUCCESS') ? 'CONNECTED' : 'FAILED',
+    results
+  });
 });
 
 // Register a new customer
